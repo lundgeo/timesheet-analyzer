@@ -1,34 +1,52 @@
 import pandas as pd
 
-def weekly_hours_by_project(data: pd.DataFrame) -> pd.DataFrame:
-    return data.groupby(['week_ending','project_name'])['total'].sum().reset_index()
 
-def prior_two_months_hours_by_project(data: pd.DataFrame) -> pd.DataFrame:
-    most_recent_week = data['week_ending'].max()
-    last_two_months = data[data['week_ending'] > most_recent_week - pd.DateOffset(months=2)]
-    return last_two_months.groupby('project_name')['total'].sum().reset_index()
+def weekly_hours_by_project(data: pd.DataFrame) -> pd.DataFrame:
+    return data.groupby(["week_ending", "project_name"])["total"].sum().reset_index()
+
+
+def prior_months_hours_by_project(data: pd.DataFrame, months=2) -> pd.DataFrame:
+    most_recent_week = data["week_ending"].max()
+    last_n_months = data[
+        data["week_ending"] > most_recent_week - pd.DateOffset(months=months)
+    ]
+    return last_n_months.groupby("project_name")["total"].sum().reset_index()
+
 
 def primary_project_last_week(data: pd.DataFrame) -> str:
-    most_recent_week = data['week_ending'].max()
-    last_week = data[data['week_ending']==most_recent_week].groupby(['week_ending','project_name'])['total'].sum().reset_index()
-    max_project_hours = last_week.groupby('project_name')['total'].sum().max()
-    primary_project_last_week = last_week[last_week['total'] == max_project_hours]['project_name'].values[0]
-    return primary_project_last_week
+    most_recent_week = data["week_ending"].max()
+    last_week = (
+        data[data["week_ending"] == most_recent_week]
+        .groupby(["week_ending", "project_name"])["total"]
+        .sum()
+        .reset_index()
+    )
+    max_project_hours = last_week.groupby("project_name")["total"].sum().max()
+    main_project_last_week = last_week[last_week["total"] == max_project_hours][
+        "project_name"
+    ].values[0]
+    return main_project_last_week
 
-def percentage_of_time_on_most_recent_project(data: pd.DataFrame) -> (str, str):
+
+def percentage_of_time_on_most_recent_project(data: pd.DataFrame) -> tuple[str, str]:
     main_project = primary_project_last_week(data)
-    last_two_months = prior_two_months_hours_by_project(data)
-    time_on_most_recent_project = last_two_months[last_two_months['project_name'] == main_project]
-    return main_project, f'{((time_on_most_recent_project['total'] / last_two_months['total'].sum()).max() * 100).round(1)}%'
+    last_two_months = prior_months_hours_by_project(data)
+    time_on_most_recent_project = last_two_months[
+        last_two_months["project_name"] == main_project
+    ]
+    recent_project_percentage = (
+        time_on_most_recent_project["total"] / last_two_months["total"].sum()
+    )
+    return main_project, f"{(recent_project_percentage.max() * 100).round(1)}%"
 
 
-def has_been_on_current_project_for_a_while(data: pd.DataFrame) -> pd.DataFrame:
-    last_two_months = prior_two_months_hours_by_project(data)
+def additional_metrics_on_prior_months(data: pd.DataFrame, months=2) -> pd.DataFrame:
+    prior_months = prior_months_hours_by_project(data, months)
 
-    last_two_months['percentage'] = last_two_months['total'] / last_two_months['total'].sum() * 100
-    last_two_months['percentage'] = last_two_months['percentage'].round(1)
-    last_two_months['dollars'] = last_two_months['total'] * 185
-    last_two_months['dollars'] = last_two_months['dollars'].round(2)
-    
+    prior_months["percentage"] = (
+        prior_months["total"] / prior_months["total"].sum() * 100
+    ).round(1)
+    prior_months["dollars"] = (prior_months["total"] * 185).round(2)
+
     print(*percentage_of_time_on_most_recent_project(data))
-    return last_two_months
+    return prior_months
