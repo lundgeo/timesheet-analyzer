@@ -80,7 +80,6 @@ def additional_metrics_on_prior_months(data: pd.DataFrame, months=2) -> pd.DataF
     ).round(1)
     prior_months["dollars"] = (prior_months["total_time_billed"] * 185).round(2)
 
-    print(*percentage_of_time_on_most_recent_project(data))
     return prior_months
 
 
@@ -118,9 +117,6 @@ def _calculate_rotation_index(row, all_data, weeks_to_include=3, recent_weeks=8)
     last_n_months_on_current_project = last_n_months[
         last_n_months["project_name"] == main_project_for_current_week
     ]["total_time_billed"].sum()
-    print(
-        f"week ending {row['week_ending']} {last_n_months_on_current_project}/{total_last_n_months}"
-    )
     rotation_index = 1 - last_n_months_on_current_project / total_last_n_months
 
     return pd.Series(

@@ -140,7 +140,7 @@ rotation_index_graph = (
         y="rotation_index",
         tooltip=["week_ending", "main_project", "rotation_index"],
     )
-)
+).interactive(bind_y=False)
 st.altair_chart(rotation_index_graph, use_container_width=True)
 
 st.subheader("Hours per Storycard")
