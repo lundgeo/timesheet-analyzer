@@ -6,7 +6,7 @@ from pathlib import Path
 import altair as alt
 
 
-from metrics import additional_metrics_on_prior_months
+from metrics import additional_metrics_on_prior_months, weekly_hours_by_project
 from parse_timesheet import parse_files
 
 
@@ -20,16 +20,20 @@ final_data = fetch_data()
 st.title("Timesheet Data Dashboard")
 
 st.subheader("Total Hours by Project")
-project_summary = final_data.groupby("project_name")["total"].sum().reset_index()
+project_summary = (
+    final_data.groupby("project_name")["total_time_billed"].sum().reset_index()
+)
 st.dataframe(project_summary)
-project_summary = project_summary.sort_values(by="total", ascending=False).head(10)
+project_summary = project_summary.sort_values(
+    by="total_time_billed", ascending=False
+).head(10)
 chart = (
     alt.Chart(project_summary)
     .mark_bar()
     .encode(
         x=alt.X("project_name", sort="-y"),
-        y="total",
-        tooltip=["project_name", "total"],
+        y="total_time_billed",
+        tooltip=["project_name", "total_time_billed"],
     )
     .interactive()
 )
@@ -41,7 +45,7 @@ selected_project = st.selectbox("Select a project", project_names)
 
 filtered_data = (
     final_data[final_data["project_name"] == selected_project]
-    .groupby("storycard")["total"]
+    .groupby("storycard_number")["total_time_billed"]
     .sum()
     .reset_index()
 )
@@ -50,24 +54,24 @@ st.subheader(f"Data for Project: {selected_project}")
 st.dataframe(filtered_data)
 
 chart_two = (
-    alt.Chart(filtered_data.where(filtered_data["total"] > 2))
+    alt.Chart(filtered_data.where(filtered_data["total_time_billed"] > 2))
     .mark_bar()
     .encode(
-        x=alt.X("storycard", sort="-y"),
-        y="total",
-        tooltip=["storycard", "total"],
+        x=alt.X("storycard_number", sort="-y"),
+        y="total_time_billed",
+        tooltip=["storycard_number", "total_time_billed"],
     )
     .interactive()
 )
 st.altair_chart(chart_two, use_container_width=True)
 
 top_n = math.floor(filtered_data.shape[0] * 0.2)
-filtered_data = filtered_data.sort_values(by="total", ascending=False)
+filtered_data = filtered_data.sort_values(by="total_time_billed", ascending=False)
 first_ten = filtered_data.head(top_n)
 filtered_data["category"] = filtered_data.apply(
     lambda row: (
-        row["storycard"]
-        if row["storycard"] in list(first_ten["storycard"])
+        row["storycard_number"]
+        if row["storycard_number"] in list(first_ten["storycard_number"])
         else "Other"
     ),
     axis=1,
@@ -99,3 +103,22 @@ filtered_data = final_data[
     final_data["week_ending"] > most_recent_week - pd.DateOffset(months=2)
 ]
 st.dataframe(filtered_data)
+
+st.subheader("Time Breakdown by Project")
+months = st.selectbox(
+    "Select a number of previous months to include",
+    [1, 2, 4, 6, 12, 24, 36, 48, 60, 100],
+    5,
+)
+weekly_hours = weekly_hours_by_project(final_data, months=months)
+project_breakdown_chart = (
+    alt.Chart(weekly_hours)
+    .mark_bar()
+    .encode(
+        x=alt.X("week_ending", sort="x"),
+        y="percentage",
+        color="project_name",
+        tooltip=["week_ending", "percentage", "project_name"],
+    )
+).interactive()
+st.altair_chart(project_breakdown_chart, use_container_width=True)
