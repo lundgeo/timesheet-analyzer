@@ -6,7 +6,12 @@ from pathlib import Path
 import altair as alt
 
 
-from metrics import additional_metrics_on_prior_months, weekly_hours_by_project
+from metrics import (
+    additional_metrics_on_prior_months,
+    caluculate_rotation_index,
+    sum_of_hours_per_storycard,
+    weekly_hours_by_project,
+)
 from parse_timesheet import parse_files
 
 
@@ -122,3 +127,22 @@ project_breakdown_chart = (
     )
 ).interactive()
 st.altair_chart(project_breakdown_chart, use_container_width=True)
+
+st.subheader("Rotation Index")
+weeks_to_include = st.number_input("Weeks to include", 0, value=2)
+recent_weeks = st.number_input("Weeks to consider 'recent'", 0, value=8)
+rotation_index = caluculate_rotation_index(final_data, weeks_to_include, recent_weeks)
+rotation_index_graph = (
+    alt.Chart(rotation_index)
+    .mark_line()
+    .encode(
+        x="week_ending",
+        y="rotation_index",
+        tooltip=["week_ending", "main_project", "rotation_index"],
+    )
+)
+st.altair_chart(rotation_index_graph, use_container_width=True)
+
+st.subheader("Hours per Storycard")
+hours_per_card = sum_of_hours_per_storycard(final_data)
+st.dataframe(hours_per_card)
