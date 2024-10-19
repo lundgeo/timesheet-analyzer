@@ -4,3 +4,6 @@ input_files
 __pycache__
 venv
 *.csv
+credentials.json
+token.json
+.env
