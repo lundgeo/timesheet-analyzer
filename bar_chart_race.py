@@ -22,7 +22,7 @@ def plot(data: pd.DataFrame):
     colors = sns.color_palette('hls', len(unique_projects))
     project_color_map = {project: colors[i] for i, project in enumerate(unique_projects)}  
 
-    draw_barchart_partial = functools.partial(draw_barchart, pivot_data=pivot_data, project_color_map=project_color_map)
+    draw_barchart_partial = functools.partial(draw_barchart, pivot_data=pivot_data, project_color_map=project_color_map, start_week=pivot_data.index[0])
 
     fig, ax = plt.subplots(figsize=(10, 6))
     animator = animation.FuncAnimation(fig, draw_barchart_partial, frames=len(pivot_data), repeat=False)
@@ -32,7 +32,7 @@ def plot(data: pd.DataFrame):
 
     plt.show()
 
-def draw_barchart(week, pivot_data: pd.DataFrame, project_color_map: dict[str, tuple]):
+def draw_barchart(week, pivot_data: pd.DataFrame, project_color_map: dict[str, tuple], start_week: pd.Timestamp):
     plt.clf()
     current_week_data = pivot_data.iloc[:week+1].sum(axis=0).sort_values(ascending=False)
     current_week_data = current_week_data.head(15)[::-1] 
@@ -41,7 +41,7 @@ def draw_barchart(week, pivot_data: pd.DataFrame, project_color_map: dict[str, t
     bars = plt.barh(current_week_data.index, current_week_data.values, color=colors)
     plt.xlim(0, current_week_data.max() + 5)
     plt.xlabel("Hours")
-    plt.title(f'Total Time Billed up to {pivot_data.index[week].date()}')
+    plt.title(f'Total Time Billed from {start_week.date()} to {pivot_data.index[week].date()}')
 
     for bar in bars:
         width = bar.get_width()  
